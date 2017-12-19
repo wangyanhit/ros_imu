@@ -8,6 +8,10 @@ class EKF:
         self.gyro = np.zeros(3)
 
         # EKF
+        # M
+        self.M = np.identity(3) * 0.001
+        # V
+        self.V = np.zeros((4, 3))
         # R
         self.R = np.zeros((4, 4))
         for i in range(4):
@@ -47,17 +51,24 @@ class EKF:
 
         delta_t = dt # 0.05
         # G
-        G = np.array([[0, -gyro[0], -gyro[1], -gyro[2]],
-                      [gyro[0], 0, gyro[2], -gyro[1]],
-                      [gyro[1], -gyro[2], 0, gyro[0]],
-                      [gyro[2], gyro[1], -gyro[0], 0]]) * delta_t * 0.5
+        G = np.array([[1, -gyro[0], -gyro[1], -gyro[2]],
+                      [gyro[0], 1, gyro[2], -gyro[1]],
+                      [gyro[1], -gyro[2], 1, gyro[0]],
+                      [gyro[2], gyro[1], -gyro[0], 1]]) * delta_t * 0.5
         # h
         h = -np.array([[2 * (x[1][0] * x[3][0] - x[0][0] * x[2][0])],
                       [2 * (x[2][0] * x[3][0] + x[0][0] * x[1][0])],
                       [1 - 2 * (x[1][0]**2 + x[2][0]**2)]])
+        # V
+        self.V = np.array([[-x[1][0], -x[2][0], -x[3][0]],
+                           [x[0][0], -x[3][0], x[2][0]],
+                           [x[3][0], x[0][0], -x[1][0]],
+                           [-x[2][0], x[1][0], x[0][0]]]) * delta_t * 0.5
+        # R
+        self.R = np.dot(np.dot(self.V, self.M), self.V.transpose())
         #print h.ravel(), z.ravel()
         # predict
-        x = np.dot(np.identity(4) + G, x)
+        x = np.dot(G, x)
         S = np.dot(np.dot(G, S),G.transpose()) + self.R
 
         #update
